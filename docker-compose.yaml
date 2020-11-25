@@ -1,0 +1,90 @@
+version: '3.7'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:6.0.0
+    restart: unless-stopped
+    hostname: zookeeper
+    container_name: zookeeper
+    volumes:
+      - ./zookeeper-data/data:/data
+      - ./zookeeper-data/datalog:/datalog
+    networks:
+      - kafka-cluster
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_SYNC_LIMIT: 2
+
+  broker-1:
+    image: confluentinc/cp-kafka:6.0.0
+    restart: unless-stopped
+    hostname: kafka-broker-1
+    container_name: kafka-broker-1
+    depends_on:
+      - zookeeper
+    volumes:
+      - ./kafka-data/broker-1:/var/lib/kafka/data
+    networks:
+      - kafka-cluster
+    ports:
+      - "9091:9091"
+      - "19091:19091"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL_DOCKER_LISTENER://broker:19091, EXTERNAL_DOCKER_LISTENER://localhost:9091
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL_DOCKER_LISTENER:PLAINTEXT, EXTERNAL_DOCKER_LISTENER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL_DOCKER_LISTENER
+      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+
+  broker-2:
+    image: confluentinc/cp-kafka:6.0.0
+    restart: unless-stopped
+    hostname: kafka-broker-2
+    container_name: kafka-broker-2
+    depends_on:
+      - zookeeper
+    volumes:
+      - ./kafka-data/broker-2:/var/lib/kafka/data
+    networks:
+      - kafka-cluster
+    ports:
+      - "9092:9092"
+      - "19092:19092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL_DOCKER_LISTENER://broker:19092, EXTERNAL_DOCKER_LISTENER://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL_DOCKER_LISTENER:PLAINTEXT, EXTERNAL_DOCKER_LISTENER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL_DOCKER_LISTENER
+      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+
+  broker-3:
+    image: confluentinc/cp-kafka:6.0.0
+    restart: unless-stopped
+    hostname: kafka-broker-3
+    container_name: kafka-broker-3
+    depends_on:
+      - zookeeper
+    volumes:
+      - ./kafka-data/broker-3:/var/lib/kafka/data
+    networks:
+      - kafka-cluster
+    ports:
+      - "9093:9093"
+      - "19093:19093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL_DOCKER_LISTENER://broker:19093, EXTERNAL_DOCKER_LISTENER://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL_DOCKER_LISTENER:PLAINTEXT, EXTERNAL_DOCKER_LISTENER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL_DOCKER_LISTENER
+      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+
+
+networks:
+  kafka-cluster:
