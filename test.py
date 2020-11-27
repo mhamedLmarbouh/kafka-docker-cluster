@@ -1,84 +1,76 @@
-import threading, time
-
+from abc import ABC, abstractmethod
+import threading
+import time
+import unittest
+from typing import Iterator
 from kafka import KafkaAdminClient, KafkaConsumer, KafkaProducer
 from kafka.admin import NewTopic
 
-TOPIC_NAME = 'my-two-one'
-TOPIC_MSG_1 = b'two partition'
-TOPIC_MSG_2 = b'one replicat'
+BOOTSTRAP_SERVER = 'localhost:9092'
 
-class Producer(threading.Thread):
+
+class Producer:
     def __init__(self):
-        threading.Thread.__init__(self)
-        self.stop_event = threading.Event()
+        self.producer = KafkaProducer(bootstrap_servers=BOOTSTRAP_SERVER)
 
-    def stop(self):
-        self.stop_event.set()
+    def produce(self, topic, message):
+        self.producer.send(topic, message)
 
-    def run(self):
-        producer = KafkaProducer(bootstrap_servers='localhost:9092')
-
-        while not self.stop_event.is_set():
-            producer.send(TOPIC_NAME, TOPIC_MSG_1)
-            producer.send(TOPIC_NAME, TOPIC_MSG_2)
-            time.sleep(1)
-
-        producer.close()
+    def close(self):
+        self.producer.close()
 
 
-class Consumer(threading.Thread):
+class Consumer:
     def __init__(self):
-        threading.Thread.__init__(self)
-        self.stop_event = threading.Event()
+        self.consumer = KafkaConsumer(bootstrap_servers=BOOTSTRAP_SERVER,
+                                      auto_offset_reset='earliest',
+                                      consumer_timeout_ms=1000)
 
-    def stop(self):
-        self.stop_event.set()
+    def consume(self, topic):
+        self.consumer.subscribe([topic])
+        for message in self.consumer:
+            yield message
 
-    def run(self):
-        consumer = KafkaConsumer(bootstrap_servers='localhost:9092',
-                                 auto_offset_reset='earliest',
-                                 consumer_timeout_ms=1000)
-        consumer.subscribe([TOPIC_NAME])
-
-        while not self.stop_event.is_set():
-            for message in consumer:
-                print(message)
-                if self.stop_event.is_set():
-                    break
-
-        consumer.close()
+    def close(self):
+        self.consumer.close()
 
 
-def main():
+def create_topic(topic_name):
     # Create 'my-topic' Kafka topic
     try:
-        admin = KafkaAdminClient(bootstrap_servers='localhost:9092')
+        admin = KafkaAdminClient(bootstrap_servers=BOOTSTRAP_SERVER)
 
-        topic = NewTopic(name=TOPIC_NAME,
-                         num_partitions=2,
+        topic = NewTopic(name=topic_name,
+                         num_partitions=1,
                          replication_factor=1)
         admin.create_topics([topic])
     except Exception:
         pass
 
-    tasks = [
-        Producer(),
-        Consumer()
-    ]
 
-    # Start threads of a publisher/producer and a subscriber/consumer to 'my-topic' Kafka topic
-    for t in tasks:
-        t.start()
+class TestKafkaCluster(unittest.TestCase):
+    def setUp(self):
+        self.TOPIC_NAME = 'my-topic'
+        self.MESSAGES = [b'Message one', b'Message two']
+        create_topic(self.TOPIC_NAME)
+        self.producer = Producer()
+        self.consumer = Consumer()
 
-    time.sleep(10)
+    def move_consumer_offset_to_last_index(self):
+        for _ in self.consumer.consume(self.TOPIC_NAME):
+            pass
 
-    # Stop threads
-    for task in tasks:
-        task.stop()
+    def test_kafka(self):
+        self.move_consumer_offset_to_last_index()
+        self.producer.produce(self.TOPIC_NAME, self.MESSAGES[0])
+        self.producer.produce(self.TOPIC_NAME, self.MESSAGES[1])
 
-    for task in tasks:
-        task.join()
+        messages = []
+        for message in self.consumer.consume(self.TOPIC_NAME):
+            messages.append(message.value)
+
+        self.assertListEqual(messages, self.MESSAGES)
 
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    unittest.main()
