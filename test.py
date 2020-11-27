@@ -1,8 +1,4 @@
-from abc import ABC, abstractmethod
-import threading
-import time
 import unittest
-from typing import Iterator
 from kafka import KafkaAdminClient, KafkaConsumer, KafkaProducer
 from kafka.admin import NewTopic
 
@@ -48,7 +44,6 @@ class Admin:
 
     def delete_topic(self, topic):
         res = self.admin.delete_topics([topic], 2000)
-        print(res)
     
     def close(self):
         self.admin.close()
