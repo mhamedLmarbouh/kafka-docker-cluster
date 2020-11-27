@@ -11,8 +11,6 @@ the cluster is composed of:
   * broker 1: available at `localhost:9091`
   * broker 2: available at `localhost:9092`
   * broker 3: available at `localhost:9093`
- 
-**NOTE: The empry folders are used as data voluems for each docker container, just so you can have access to the various files that are going to be created by the kafka brokers and zookeeper instance**
 
 # How to use it:
 
@@ -33,8 +31,8 @@ Ran 1 test in 2.735s
 OK
 ```
 **Congrats the cluster is up and working correctly. 
-now you can use it for whatever you want**
+Now you can use it for whatever you want**
 # After you are done:
 **NOTE: the following commands should be run from the kafka-docker-cluster directory**
 * to stop the cluster use `docker-compose stop`
-* to stop and remove the cluster use `docker-compose down`
+* to stop and remove the cluster use `docker-compose down -v`
