@@ -6,12 +6,10 @@ from typing import Iterator
 from kafka import KafkaAdminClient, KafkaConsumer, KafkaProducer
 from kafka.admin import NewTopic
 
-BOOTSTRAP_SERVER = 'localhost:9092'
-
 
 class Producer:
-    def __init__(self):
-        self.producer = KafkaProducer(bootstrap_servers=BOOTSTRAP_SERVER)
+    def __init__(self, bootstrap_servers):
+        self.producer = KafkaProducer(bootstrap_servers=bootstrap_servers)
 
     def produce(self, topic, message):
         self.producer.send(topic, message)
@@ -21,8 +19,8 @@ class Producer:
 
 
 class Consumer:
-    def __init__(self):
-        self.consumer = KafkaConsumer(bootstrap_servers=BOOTSTRAP_SERVER,
+    def __init__(self, bootstrap_servers):
+        self.consumer = KafkaConsumer(bootstrap_servers=bootstrap_servers,
                                       auto_offset_reset='earliest',
                                       consumer_timeout_ms=1000)
 
@@ -35,33 +33,44 @@ class Consumer:
         self.consumer.close()
 
 
-def create_topic(topic_name):
-    # Create 'my-topic' Kafka topic
-    try:
-        admin = KafkaAdminClient(bootstrap_servers=BOOTSTRAP_SERVER)
+class Admin:
+    def __init__(self, bootstrap_servers):
+        self.admin = KafkaAdminClient(bootstrap_servers=bootstrap_servers)
 
-        topic = NewTopic(name=topic_name,
-                         num_partitions=1,
-                         replication_factor=1)
-        admin.create_topics([topic])
-    except Exception:
-        pass
+    def create_topic(self, topic):
+        try:
+            topic = NewTopic(name=topic,
+                            num_partitions=1,
+                            replication_factor=1)
+            self.admin.create_topics([topic], timeout_ms=2000)
+        except Exception:
+            pass
 
+    def delete_topic(self, topic):
+        self.admin.delete_topics([topic])
+    
+    def close(self):
+        self.admin.close()
 
 class TestKafkaCluster(unittest.TestCase):
-    def setUp(self):
-        self.TOPIC_NAME = 'my-topic'
-        self.MESSAGES = [b'Message one', b'Message two']
-        create_topic(self.TOPIC_NAME)
+    BOOTSTRAP_SERVER = 'localhost:9092'
+    TOPIC_NAME = 'my-topic'
+    MESSAGES = [b'Message one', b'Message two']
+
+    def setUp(self): 
+        self.admin = Admin()
         self.producer = Producer()
         self.consumer = Consumer()
 
-    def move_consumer_offset_to_last_index(self):
-        for _ in self.consumer.consume(self.TOPIC_NAME):
-            pass
+        self.admin.create_topic(self.TOPIC_NAME)
+    
+    def tearDown(self):
+        self.admin.delete_topic(self.TOPIC_NAME)
+        self.admin.close()
+        self.producer.close()
+        self.consumer.close()
 
     def test_kafka(self):
-        self.move_consumer_offset_to_last_index()
         self.producer.produce(self.TOPIC_NAME, self.MESSAGES[0])
         self.producer.produce(self.TOPIC_NAME, self.MESSAGES[1])
 

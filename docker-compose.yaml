@@ -6,8 +6,7 @@ services:
     hostname: zookeeper
     container_name: zookeeper
     volumes:
-      - ./zookeeper-data/data:/data
-      - ./zookeeper-data/datalog:/datalog
+      - zookeeper-instance
     networks:
       - kafka-cluster
     ports:
@@ -23,7 +22,7 @@ services:
     depends_on:
       - zookeeper
     volumes:
-      - ./kafka-data/broker-1:/var/lib/kafka/data
+      - kafka-broker-1
     networks:
       - kafka-cluster
     ports:
@@ -44,7 +43,7 @@ services:
     depends_on:
       - zookeeper
     volumes:
-      - ./kafka-data/broker-2:/var/lib/kafka/data
+      - kafka-broker-2
     networks:
       - kafka-cluster
     ports:
@@ -65,7 +64,7 @@ services:
     depends_on:
       - zookeeper
     volumes:
-      - ./kafka-data/broker-3:/var/lib/kafka/data
+      - kafka-broker-3
     networks:
       - kafka-cluster
     ports:
@@ -82,3 +81,9 @@ services:
 
 networks:
   kafka-cluster:
+
+volumes:
+  kafka-broker-1:
+  kafka-broker-2:
+  kafka-broker-3:
+  zookeeper-instance:
