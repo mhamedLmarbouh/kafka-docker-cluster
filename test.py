@@ -47,20 +47,21 @@ class Admin:
             pass
 
     def delete_topic(self, topic):
-        self.admin.delete_topics([topic])
+        res = self.admin.delete_topics([topic], 2000)
+        print(res)
     
     def close(self):
         self.admin.close()
 
 class TestKafkaCluster(unittest.TestCase):
-    BOOTSTRAP_SERVER = 'localhost:9092'
-    TOPIC_NAME = 'my-topic'
-    MESSAGES = [b'Message one', b'Message two']
+    BOOTSTRAP_SERVER = 'localhost:9091,localhost:9092,localhost:9093'
+    TOPIC_NAME = 'test-topic'
+    MESSAGES = [b'test one', b'test two']
 
     def setUp(self): 
-        self.admin = Admin()
-        self.producer = Producer()
-        self.consumer = Consumer()
+        self.admin = Admin(self.BOOTSTRAP_SERVER)
+        self.producer = Producer(self.BOOTSTRAP_SERVER)
+        self.consumer = Consumer(self.BOOTSTRAP_SERVER)
 
         self.admin.create_topic(self.TOPIC_NAME)
     
